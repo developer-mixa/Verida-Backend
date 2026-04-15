@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 
+from app.features.auth.router import router as auth_router
 from app.features.system.router import router as system_router
 
 app = FastAPI(
@@ -12,6 +13,7 @@ app = FastAPI(
 )
 
 app.include_router(system_router, prefix="/api")
+app.include_router(auth_router, prefix="/api")
 
 
 @app.get("/health", tags=["system"])

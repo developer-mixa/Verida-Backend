@@ -12,8 +12,8 @@ class User(Base):
     __tablename__ = "users"
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    email: Mapped[str] = mapped_column(String(320), unique=True, nullable=False)
-    number: Mapped[str] = mapped_column(String(32), unique=True, nullable=False)
+    email: Mapped[str | None] = mapped_column(String(320), unique=True, nullable=True)
+    number: Mapped[str | None] = mapped_column(String(32), unique=True, nullable=True)
     username: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     role_id: Mapped[uuid.UUID] = mapped_column(

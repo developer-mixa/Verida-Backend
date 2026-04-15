@@ -19,7 +19,8 @@ Verida-Backend/
 │   ├── main.py              # Сборка приложения, include_router
 │   ├── core/                # Конфиг, БД, ORM-модели (`models/`), константы сидов
 │   └── features/            # Изолированные фичи
-│       └── system/          # Служебные эндпоинты (hello, позже — расширения)
+│       ├── auth/            # Регистрация, вход, JWT
+│       └── system/          # Служебные эндпоинты (hello)
 ├── alembic/                 # Миграции
 ├── tests/                   # Зеркало структуры: tests/features/<фича>/
 ├── scripts/                 # entrypoint и вспомогательные скрипты
@@ -36,11 +37,20 @@ ORM-модели лежат в `app/core/models/`, чтобы таблицы и 
 | Таблица | Назначение |
 |---------|------------|
 | `roles` | Роли: сид `user`, `premium_user`, `admin` (фиксированные UUID в `app/core/constants.py` и миграции `0002_schema_domain`). |
-| `users` | `email`, `number`, `username` — все NOT NULL и уникальны; `password_hash`, `role_id` → `roles`, `is_verified`. |
+| `users` | `username` NOT NULL, уникален; `email` и/или `number` (телефон) — уникальны, nullable, **хотя бы одно** задано; `password_hash`, `role_id` → `roles`, `is_verified`. |
 | `articles` | `user_id` → `users`, `title`, длинный `content` (TEXT). |
 | `tags` | Каталог тегов: `article_type`, `article_name`. |
 | `article_tags` | Связка M–N `articles` ↔ `tags` (составной PK). |
 | `article_questions` | Вопрос–ответ по статье: `article_id`, `question`, `answer` (TEXT). |
+
+## Auth (JWT)
+
+| Метод | Путь | Тело |
+|-------|------|------|
+| `POST` | `/api/auth/register` | `username` (обяз.), `email` и/или `phone` (хотя бы одно), `password` (≥ 8 символов). Ответ: `access_token`, `token_type`. |
+| `POST` | `/api/auth/login` | `contact` (username **или** email **или** телефон в свободной форме), `password`. |
+
+Секрет подписи JWT: `JWT_SECRET_KEY` в `.env` (≥ 32 символов), см. [.env.example](.env.example).
 
 **Правило для агента и разработчиков:** см. [.cursor/rules/verida-backend.mdc](.cursor/rules/verida-backend.mdc) — чистый код по фичам, тесты, документация и Swagger на фичу, миграции только через Alembic; фича с ИИ оставлена для самостоятельной работы владельца.
 
