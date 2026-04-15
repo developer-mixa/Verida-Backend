@@ -1,0 +1,24 @@
+# Только PostgreSQL с портом на хосте — для локального FastAPI с --reload.
+# Запуск: docker compose -f docker-compose.local-db.yml up -d
+# Затем: cp .env.example .env и uvicorn (см. README).
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: verida
+      POSTGRES_PASSWORD: verida
+      POSTGRES_DB: verida
+    ports:
+      - "${LOCAL_DB_PORT}:5432"
+    volumes:
+      - verida_pgdata_local:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U verida -d verida"]
+      interval: 3s
+      timeout: 3s
+      retries: 15
+    restart: unless-stopped
+
+volumes:
+  verida_pgdata_local:
