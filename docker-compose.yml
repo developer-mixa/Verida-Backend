@@ -1,14 +1,17 @@
+# Учётные данные и DATABASE_URL задаются в `.env` (см. `.env.example`).
+# Docker Compose подставляет значения при парсинге; не храните секреты в этом файле.
+
 services:
   db:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: verida
-      POSTGRES_PASSWORD: verida
-      POSTGRES_DB: verida
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - verida_pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U verida -d verida"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 3s
       timeout: 3s
       retries: 15
@@ -19,7 +22,7 @@ services:
     ports:
       - "8080:8080"
     environment:
-      DATABASE_URL: postgresql+asyncpg://verida:verida@db:5432/verida
+      DATABASE_URL: ${DATABASE_URL}
     depends_on:
       db:
         condition: service_healthy

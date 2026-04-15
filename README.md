@@ -81,7 +81,11 @@ ORM-модели лежат в `app/core/models/`, чтобы таблицы и 
 
 API и PostgreSQL в одной сети; **порт PostgreSQL наружу не публикуется** (только `api` на `8080`).
 
+Учётные данные БД и строка `DATABASE_URL` для контейнера `api` **не зашиты в `docker-compose.yml`**: задаются в `.env` (скопируйте из [.env.example](.env.example)). В `DATABASE_URL` для этого сценария хост БД — **`db`** (имя сервиса в сети compose), логин/пароль/имя БД должны совпадать с `POSTGRES_*`.
+
 ```bash
+cp .env.example .env
+# выставить POSTGRES_PASSWORD и строку DATABASE_URL с хостом db
 docker compose up --build -d
 ```
 
