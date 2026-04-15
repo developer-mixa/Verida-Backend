@@ -17,7 +17,7 @@ HTTP API для мобильного клиента **Verida** ([scientific_chat
 Verida-Backend/
 ├── app/
 │   ├── main.py              # Сборка приложения, include_router
-│   ├── core/                # Конфиг, БД, общая инфраструктура (без домена фич)
+│   ├── core/                # Конфиг, БД, ORM-модели (`models/`), константы сидов
 │   └── features/            # Изолированные фичи
 │       └── system/          # Служебные эндпоинты (hello, позже — расширения)
 ├── alembic/                 # Миграции
@@ -28,6 +28,19 @@ Verida-Backend/
 ```
 
 **Правило изоляции:** `app/features/<A>/` **не** импортирует модули из `app/features/<B>/`. Общее — в `app/core/`.
+
+ORM-модели лежат в `app/core/models/`, чтобы таблицы и связи не тянули импорты между фичами; репозитории фич используют только `core` и свою фичу.
+
+## Схема БД (актуальная)
+
+| Таблица | Назначение |
+|---------|------------|
+| `roles` | Роли: сид `user`, `premium_user`, `admin` (фиксированные UUID в `app/core/constants.py` и миграции `0002_schema_domain`). |
+| `users` | `email`, `number`, `username` — все NOT NULL и уникальны; `password_hash`, `role_id` → `roles`, `is_verified`. |
+| `articles` | `user_id` → `users`, `title`, длинный `content` (TEXT). |
+| `tags` | Каталог тегов: `article_type`, `article_name`. |
+| `article_tags` | Связка M–N `articles` ↔ `tags` (составной PK). |
+| `article_questions` | Вопрос–ответ по статье: `article_id`, `question`, `answer` (TEXT). |
 
 **Правило для агента и разработчиков:** см. [.cursor/rules/verida-backend.mdc](.cursor/rules/verida-backend.mdc) — чистый код по фичам, тесты, документация и Swagger на фичу, миграции только через Alembic; фича с ИИ оставлена для самостоятельной работы владельца.
 

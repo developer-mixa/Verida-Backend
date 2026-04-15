@@ -6,8 +6,7 @@ from sqlalchemy import create_engine, pool
 from app.core.config import settings
 from app.core.database import Base
 
-# Импортируйте модели фич здесь, чтобы autogenerate видел метаданные:
-# from app.features.auth.models import User  # noqa: F401
+import app.core.models  # noqa: F401 — регистрация метаданных для autogenerate
 
 config = context.config
 if config.config_file_name is not None:
