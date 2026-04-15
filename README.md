@@ -43,14 +43,25 @@ ORM-модели лежат в `app/core/models/`, чтобы таблицы и 
 | `article_tags` | Связка M–N `articles` ↔ `tags` (составной PK). |
 | `article_questions` | Вопрос–ответ по статье: `article_id`, `question`, `answer` (TEXT). |
 
-## Auth (JWT)
+## Список эндпоинтов (полный перечень)
 
-| Метод | Путь | Тело |
-|-------|------|------|
-| `POST` | `/api/auth/register` | `username` (обяз.), `email` и/или `phone` (хотя бы одно), `password` (≥ 8 символов). Ответ: `access_token`, `token_type`. |
-| `POST` | `/api/auth/login` | `contact` (username **или** email **или** телефон в свободной форме), `password`. |
+Используйте как справочник для клиента (`scientific_chat_app`). **Обновляйте таблицу при добавлении новых роутов.**
 
-Секрет подписи JWT: `JWT_SECRET_KEY` в `.env` (≥ 32 символов), см. [.env.example](.env.example).
+Базовый URL приложения: `http(s)://<хост>:<порт>` (например `http://127.0.0.1:8080`). Прикладные маршруты живут под префиксом **`/api`**; служебные и документация — **без** `/api`.
+
+| Метод | Путь | Описание |
+|-------|------|----------|
+| `GET` | `/health` | Проверка живости (JSON `{"status":"ok"}`). |
+| `GET` | `/docs` | Интерактивная документация Swagger (OpenAPI). |
+| `GET` | `/redoc` | Документация ReDoc. |
+| `GET` | `/openapi.json` | Схема OpenAPI 3 (для кодогена / Postman). |
+| `GET` | `/api/system/hello` | Тестовый ответ (`{"message":"Hello from Verida-Backend"}`). |
+| `POST` | `/api/auth/register` | Регистрация. Тело JSON: `username` (обяз.), `email` и/или `phone` (хотя бы одно), `password` (8–72 символа). Ответ `201`: `access_token`, `token_type` (`bearer`). |
+| `POST` | `/api/auth/login` | Вход. Тело JSON: `contact` (username **или** email **или** телефон), `password`. Ответ `200`: `access_token`, `token_type`. |
+
+Ошибки: валидация — `422`; конфликт (занят username/email/телефон) — `409` на регистрации; неверный логин/пароль — `401` на входе.
+
+**JWT:** секрет подписи — `JWT_SECRET_KEY` в `.env` (≥ 32 символов), см. [.env.example](.env.example). Для будущих защищённых маршрутов заголовок: `Authorization: Bearer <access_token>`.
 
 **Правило для агента и разработчиков:** см. [.cursor/rules/verida-backend.mdc](.cursor/rules/verida-backend.mdc) — чистый код по фичам, тесты, документация и Swagger на фичу, миграции только через Alembic; фича с ИИ оставлена для самостоятельной работы владельца.
 
