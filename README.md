@@ -58,6 +58,9 @@ ORM-модели лежат в `app/core/models/`, чтобы таблицы и 
 | `GET` | `/api/system/hello` | Тестовый ответ (`{"message":"Hello from Verida-Backend"}`). |
 | `POST` | `/api/auth/register` | Регистрация. Тело JSON: `username` (обяз.), `email` и/или `phone` (хотя бы одно), `password` (8–72 символа). Ответ `201`: `access_token`, `token_type` (`bearer`). |
 | `POST` | `/api/auth/login` | Вход. Тело JSON: `contact` (username **или** email **или** телефон), `password`. Ответ `200`: `access_token`, `token_type`. |
+| `POST` | `/api/chat/sessions` | Создать тему чата. Тело: опционально `title`. Ответ `201`: `id`, `title`, `created_at`. |
+| `POST` | `/api/chat/sessions/{session_id}/messages/stream` | Сообщение в тему; ответ **SSE** (`text/event-stream`), события JSON в `data:`. Пока заглушка. |
+| `POST` | `/api/chat/sessions/{session_id}/synopsis` | Конспект по диалогу (в разработке). Пока `501`; при неизвестной сессии — `404`. |
 
 Ошибки: валидация — `422`; конфликт (занят username/email/телефон) — `409` на регистрации; неверный логин/пароль — `401` на входе.
 

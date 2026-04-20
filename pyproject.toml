@@ -9,6 +9,8 @@ description = "HTTP API для мобильного клиента Verida (scien
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
+    "openai>=1.54.0",
+    "python-dotenv>=1.0.1",
     "alembic==1.14.0",
     "asyncpg==0.30.0",
     "bcrypt==4.2.1",
