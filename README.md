@@ -20,6 +20,7 @@ Verida-Backend/
 │   ├── core/                # Конфиг, БД, ORM-модели (`models/`), константы сидов
 │   └── features/            # Изолированные фичи
 │       ├── auth/            # Регистрация, вход, JWT
+│       ├── articles/        # Чтение статей пользователя (список, детали)
 │       └── system/          # Служебные эндпоинты (hello)
 ├── alembic/                 # Миграции
 ├── tests/                   # Зеркало структуры: tests/features/<фича>/
@@ -61,12 +62,16 @@ ORM-модели лежат в `app/core/models/`, чтобы таблицы и 
 | `POST` | `/api/auth/register` | Регистрация. Тело JSON: `username` (обяз.), `email` и/или `phone` (хотя бы одно), `password` (8–72 символа). Ответ `201`: `access_token`, `token_type` (`bearer`). |
 | `POST` | `/api/auth/login` | Вход. Тело JSON: `contact` (username **или** email **или** телефон), `password`. Ответ `200`: `access_token`, `token_type`. |
 | `POST` | `/api/chat/sessions` | Создать тему чата. Тело: опционально `title`. Ответ `201`: `id`, `title`, `created_at`. |
-| `POST` | `/api/chat/sessions/{session_id}/messages/stream` | Сообщение в тему; ответ **SSE** (`text/event-stream`), события JSON в `data:`. Пока заглушка. |
-| `POST` | `/api/chat/sessions/{session_id}/synopsis` | Конспект по диалогу (в разработке). Пока `501`; при неизвестной сессии — `404`. |
+| `POST` | `/api/chat/sessions/{session_id}/messages/stream` | Сообщение в тему; ответ **SSE** (`text/event-stream`), события JSON в `data:` (`session`, `delta`, `error`, `done`). Сообщения пишутся в БД. Требуется **JWT** и переменные **Yandex GPT** (см. `.env.example`). |
+| `POST` | `/api/chat/sessions/{session_id}/synopsis` | **Только по этому запросу** создаётся/обновляется статья-конспект в `articles` (не при каждом сообщении в чате). LLM обязан вызвать `save_synopsis` → upsert одной статьи на тему и теги в `article_tags`. Ответ `200`: `article_id`, `updated`, `title`, `tags`. Пустой диалог — `422`; нет сессии — `404`; ошибка LLM — `502`. **JWT** обязателен. |
+| `GET` | `/api/articles` | Список статей текущего пользователя (в т.ч. конспекты): `id`, `title`, `chat_session_id`, `tags`. Query: `limit` (1–200, по умолчанию 50), `offset`. **JWT** обязателен. |
+| `GET` | `/api/articles/{article_id}` | Детали статьи: `title`, `content`, `chat_session_id`, `tags`. Только своя статья; чужая или несуществующая — `404`. **JWT** обязателен. |
+
+**Интернет и литература (чат):** **Yandex Responses API** + один нативный **`web_search`** в `tools` (два `web_search` в одном запросе API отклоняет с 400). По умолчанию поиск по всему интернету с `search_context_size: high`; модель в инструкции ориентирована сначала на научные формулировки запроса, затем на более широкие. Опционально: `YANDEX_WEB_SEARCH_REGION`, `YANDEX_WEB_SEARCH_ONLY_SCIENCE_DOMAINS=1` — ограничить выдачу научными доменами из кода. Длинная история чата **обрезается с конца бюджета токенов** (`YANDEX_CHAT_MAX_DIALOGUE_TOKENS`, по умолчанию 14000), иначе провайдер может вернуть ошибку по лимиту 32768 с учётом web_search. Конспект (`/synopsis`) — **chat.completions** + только `save_synopsis`, без веб-поиска.
 
 Ошибки: валидация — `422`; конфликт (занят username/email/телефон) — `409` на регистрации; неверный логин/пароль — `401` на входе.
 
-**JWT:** секрет подписи — `JWT_SECRET_KEY` в `.env` (≥ 32 символов), см. [.env.example](.env.example). Для будущих защищённых маршрутов заголовок: `Authorization: Bearer <access_token>`.
+**JWT:** секрет подписи — `JWT_SECRET_KEY` в `.env` (≥ 32 символов), см. [.env.example](.env.example). Заголовок: `Authorization: Bearer <access_token>`. Маршруты `/api/chat/*` и чтение `/api/articles` / `/api/articles/{id}` требуют JWT.
 
 **Правило для агента и разработчиков:** см. [.cursor/rules/verida-backend.mdc](.cursor/rules/verida-backend.mdc) — чистый код по фичам, тесты, документация и Swagger на фичу, миграции только через Alembic; фича с ИИ оставлена для самостоятельной работы владельца.
 

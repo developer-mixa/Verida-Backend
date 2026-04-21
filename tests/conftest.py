@@ -12,6 +12,9 @@ from app.core.models import Role
 from app.core.constants import ROLE_USER_ID
 from app.main import app
 
+import app.core.database as db_module
+import app.features.ai_chat.router as ai_chat_router_module
+
 
 @pytest_asyncio.fixture
 async def async_client() -> AsyncIterator[AsyncClient]:
@@ -24,6 +27,11 @@ async def async_client() -> AsyncIterator[AsyncClient]:
         await conn.run_sync(Base.metadata.create_all)
 
     session_factory = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
+
+    _orig_db_session_local = db_module.AsyncSessionLocal
+    _orig_router_session_local = ai_chat_router_module.AsyncSessionLocal
+    db_module.AsyncSessionLocal = session_factory
+    ai_chat_router_module.AsyncSessionLocal = session_factory
 
     async with session_factory() as session:
         session.add(Role(id=ROLE_USER_ID, name="user"))
@@ -39,4 +47,6 @@ async def async_client() -> AsyncIterator[AsyncClient]:
         yield client
 
     app.dependency_overrides.clear()
+    db_module.AsyncSessionLocal = _orig_db_session_local
+    ai_chat_router_module.AsyncSessionLocal = _orig_router_session_local
     await engine.dispose()

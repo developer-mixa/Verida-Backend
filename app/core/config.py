@@ -1,5 +1,13 @@
+from pathlib import Path
+
+from dotenv import load_dotenv
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# Pydantic подхватывает .env только для объявленных полей; os.getenv (Yandex GPT и т.д.) — нет.
+# Явная загрузка из корня пакета Verida-Backend, чтобы не зависеть от cwd при uvicorn.
+_env_file = Path(__file__).resolve().parents[2] / ".env"
+load_dotenv(_env_file)
 
 
 class Settings(BaseSettings):
