@@ -3,9 +3,12 @@ from __future__ import annotations
 from collections.abc import AsyncIterator, Mapping, Sequence
 from typing import Any, Optional, Protocol
 
+from openai import OpenAI
 
 class ChatAiRepository(Protocol):
     """Порт к LLM (Yandex и т.д.); реализация подключится позже."""
+
+    client: OpenAI
 
     def msg_to_chat(
         self,

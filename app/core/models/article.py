@@ -18,10 +18,19 @@ class Article(Base):
         ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False,
     )
+    chat_session_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("chat_sessions.id", ondelete="CASCADE"),
+        nullable=True,
+    )
     title: Mapped[str] = mapped_column(String(500), nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
 
     author: Mapped[User] = relationship(back_populates="articles")
+    chat_session: Mapped["ChatSession | None"] = relationship(
+        back_populates="articles",
+        foreign_keys=[chat_session_id],
+    )
     tags: Mapped[list[Tag]] = relationship(secondary=article_tags, back_populates="articles")
     questions: Mapped[list[ArticleQuestion]] = relationship(
         back_populates="article",

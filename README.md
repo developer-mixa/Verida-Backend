@@ -38,7 +38,9 @@ ORM-модели лежат в `app/core/models/`, чтобы таблицы и 
 |---------|------------|
 | `roles` | Роли: сид `user`, `premium_user`, `admin` (фиксированные UUID в `app/core/constants.py` и миграции `0002_schema_domain`). |
 | `users` | `username` NOT NULL, уникален; `email` и/или `number` (телефон) — уникальны, nullable, **хотя бы одно** задано; `password_hash`, `role_id` → `roles`, `is_verified`. |
-| `articles` | `user_id` → `users`, `title`, длинный `content` (TEXT). |
+| `articles` | `user_id` → `users`, `title`, `content` (TEXT); опционально `chat_session_id` → `chat_sessions` (конспект/материал по теме чата). |
+| `chat_sessions` | Тема чата: `user_id`, `title`, `created_at` / `updated_at`, `archived_at`, `active_article_id` → `articles` (текущий конспект). Миграция `0004_ai_chat_tables`. |
+| `chat_messages` | Сообщения в теме: `session_id`, `role`, `content`, `payload` (JSONB). |
 | `tags` | Каталог тегов: `article_type`, `article_name`. |
 | `article_tags` | Связка M–N `articles` ↔ `tags` (составной PK). |
 | `article_questions` | Вопрос–ответ по статье: `article_id`, `question`, `answer` (TEXT). |

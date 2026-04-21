@@ -25,3 +25,7 @@ class User(Base):
 
     role: Mapped[Role] = relationship(back_populates="users")
     articles: Mapped[list[Article]] = relationship(back_populates="author")
+    chat_sessions: Mapped[list["ChatSession"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
