@@ -201,19 +201,6 @@ def _try_yandex_tool_call_save_synopsis(s: str, decoder: json.JSONDecoder) -> st
     return None
 
 
-def _save_synopsis_arguments_from_chat_message(choice: Any) -> str:
-    if not choice.tool_calls:
-        raise RuntimeError(
-            "Модель не вернула вызов save_synopsis. "
-            "Проверьте, что endpoint поддерживает function calling в chat.completions."
-        )
-    for tc in choice.tool_calls:
-        if tc.function.name == "save_synopsis":
-            return _normalize_tool_arguments_json(tc.function.arguments or "{}")
-    names = [tc.function.name for tc in choice.tool_calls]
-    raise RuntimeError(f"Ожидался save_synopsis, получены tools: {names}")
-
-
 def _responses_assistant_plain_text(resp: Any) -> str:
     """Текст финального сообщения из output (без SDK Response — удобно для тестов)."""
     texts: list[str] = []

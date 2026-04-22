@@ -44,18 +44,8 @@ _SAVE_SYNOPSIS_TOOL_PARAMETERS: dict[str, Any] = {
     "required": ["title", "content", "tags"],
 }
 
-# Формат chat.completions (OpenAI): name внутри `function`.
-SAVE_SYNOPSIS_OPENAI_TOOL: dict[str, Any] = {
-    "type": "function",
-    "function": {
-        "name": "save_synopsis",
-        "description": _SAVE_SYNOPSIS_TOOL_DESCRIPTION,
-        "parameters": _SAVE_SYNOPSIS_TOOL_PARAMETERS,
-    },
-}
-
-# Формат Responses API / Yandex (как log_exercise_tool в yandex-ai-studio/fitness-assistant):
-# плоский объект type/name/description/parameters, без вложенного `function`.
+# Формат Responses API / Yandex (плоский объект type/name/description/parameters,
+# без вложенного `function` — как log_exercise_tool в yandex-ai-studio/fitness-assistant).
 SAVE_SYNOPSIS_RESPONSES_TOOL: dict[str, Any] = {
     "type": "function",
     "name": "save_synopsis",
