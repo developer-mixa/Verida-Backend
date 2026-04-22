@@ -7,22 +7,16 @@ from openai import AsyncOpenAI
 
 from app.features.ai_chat.llm.chat_stream import iter_chat_reply
 from app.features.ai_chat.llm.synopsis_response_parse import (
-    _fix_json_invalid_backslash_apostrophe,
-    _normalize_synopsis_tool_arguments,
-    _relax_model_json_in_tool_chunk,
     _save_synopsis_arguments_from_response,
-    _synopsis_json_string_from_plain_text,
+    parse_synopsis_from_response,
 )
 from app.features.ai_chat.llm.synopsis_runner import run_synopsis_save_args
 
 # Реэкспорт для тестов (tests/features/ai_chat/test_synopsis_response_parse.py).
 __all__ = [
     "OpenAiChatLlm",
-    "_fix_json_invalid_backslash_apostrophe",
-    "_normalize_synopsis_tool_arguments",
-    "_relax_model_json_in_tool_chunk",
     "_save_synopsis_arguments_from_response",
-    "_synopsis_json_string_from_plain_text",
+    "parse_synopsis_from_response",
 ]
 
 

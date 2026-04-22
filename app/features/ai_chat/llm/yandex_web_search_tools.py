@@ -66,7 +66,7 @@ def yandex_responses_web_search_tools() -> list[dict[str, Any]]:
 
     tool: dict[str, Any] = {
         "type": "web_search",
-        "search_context_size": "high",
+        "search_context_size": "medium",
     }
     if filters:
         tool["filters"] = filters
