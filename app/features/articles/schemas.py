@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from uuid import UUID
 
 from pydantic import BaseModel, Field, model_validator
@@ -54,3 +55,50 @@ class ArticleUpdateIn(BaseModel):
         if self.title is None and self.content is None and self.tags is None:
             raise ValueError("Укажите хотя бы одно из полей: title, content, tags")
         return self
+
+
+class ArticleQuestionOut(BaseModel):
+    model_config = {"from_attributes": True}
+
+    id: UUID
+    question: str
+    answer: str
+
+
+class ArticleQuestionCreateIn(BaseModel):
+    question: str = Field(min_length=1)
+    answer: str = Field(min_length=1)
+
+
+class ArticleQuestionUpdateIn(BaseModel):
+    question: str | None = Field(default=None, min_length=1)
+    answer: str | None = Field(default=None, min_length=1)
+
+    @model_validator(mode="after")
+    def at_least_one_field(self) -> ArticleQuestionUpdateIn:
+        if self.question is None and self.answer is None:
+            raise ValueError("Укажите хотя бы одно из полей: question, answer")
+        return self
+
+
+class ArticleStudySessionOut(BaseModel):
+    id: UUID
+    user_id: UUID
+    article_id: UUID
+    deck_order: list[UUID]
+    total_cards: int
+    correct_count: int
+    created_at: datetime
+    completed_at: datetime | None
+
+
+class ArticleStudyReviewIn(BaseModel):
+    question_id: UUID
+    is_correct: bool
+
+
+class ArticleStudyReviewResultOut(BaseModel):
+    correct_count: int
+    total_cards: int
+    reviews_submitted: int
+    session_completed: bool

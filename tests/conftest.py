@@ -3,11 +3,14 @@ from __future__ import annotations
 from collections.abc import AsyncIterator
 
 import pytest_asyncio
+
+pytest_plugins = ["tests.features.ai_chat.conftest"]
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import StaticPool
 
 from app.core.database import Base, get_db
+import app.core.models  # noqa: F401 — все таблицы в metadata для create_all в тестах
 from app.core.models import Role
 from app.core.constants import ROLE_USER_ID
 from app.main import app

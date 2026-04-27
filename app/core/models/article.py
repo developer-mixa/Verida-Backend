@@ -36,3 +36,8 @@ class Article(Base):
         back_populates="article",
         cascade="all, delete-orphan",
     )
+    study_sessions: Mapped[list["ArticleStudySession"]] = relationship(
+        "ArticleStudySession",
+        back_populates="article",
+        cascade="all, delete-orphan",
+    )

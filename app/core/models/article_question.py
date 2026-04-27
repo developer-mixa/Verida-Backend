@@ -21,3 +21,8 @@ class ArticleQuestion(Base):
     answer: Mapped[str] = mapped_column(Text, nullable=False)
 
     article: Mapped[Article] = relationship(back_populates="questions")
+    reviews: Mapped[list["ArticleQuestionReview"]] = relationship(
+        "ArticleQuestionReview",
+        back_populates="question",
+        cascade="all, delete-orphan",
+    )
