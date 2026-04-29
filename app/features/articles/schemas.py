@@ -20,6 +20,8 @@ class ArticleSummaryOut(BaseModel):
     id: UUID
     title: str
     chat_session_id: UUID | None
+    parent_id: UUID | None
+    is_folder: bool
     tags: list[ArticleTagOut] = Field(default_factory=list)
 
 
@@ -30,6 +32,8 @@ class ArticleDetailOut(BaseModel):
     title: str
     content: str
     chat_session_id: UUID | None
+    parent_id: UUID | None
+    is_folder: bool
     tags: list[ArticleTagOut] = Field(default_factory=list)
 
 
@@ -40,20 +44,30 @@ class ArticleTagIn(BaseModel):
 
 class ArticleCreateIn(BaseModel):
     title: str = Field(min_length=1, max_length=500)
-    content: str = Field(min_length=1)
+    content: str = Field(default="")
     tags: list[ArticleTagIn] = Field(default_factory=list)
     chat_session_id: UUID | None = None
+    parent_id: UUID | None = None
+    is_folder: bool = False
+
+    @model_validator(mode="after")
+    def content_required_for_notes(self) -> ArticleCreateIn:
+        if not self.is_folder and (not self.content or not self.content.strip()):
+            raise ValueError("Для заметки укажите непустой content")
+        return self
 
 
 class ArticleUpdateIn(BaseModel):
     title: str | None = Field(default=None, min_length=1, max_length=500)
     content: str | None = Field(default=None, min_length=1)
     tags: list[ArticleTagIn] | None = None
+    parent_id: UUID | None = None
+    is_folder: bool | None = None
 
     @model_validator(mode="after")
     def at_least_one_field(self) -> ArticleUpdateIn:
-        if self.title is None and self.content is None and self.tags is None:
-            raise ValueError("Укажите хотя бы одно из полей: title, content, tags")
+        if not self.model_fields_set:
+            raise ValueError("Укажите хотя бы одно поле для обновления")
         return self
 
 
@@ -102,3 +116,8 @@ class ArticleStudyReviewResultOut(BaseModel):
     total_cards: int
     reviews_submitted: int
     session_completed: bool
+
+
+class ArticleImportZipOut(BaseModel):
+    created_count: int
+    root_article_ids: list[UUID]

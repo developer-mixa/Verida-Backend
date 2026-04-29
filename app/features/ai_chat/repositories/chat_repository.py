@@ -96,6 +96,8 @@ class ChatRepository:
         article = Article(
             user_id=user_id,
             chat_session_id=session.id,
+            parent_id=None,
+            is_folder=False,
             title=title[:500],
             content=content,
         )

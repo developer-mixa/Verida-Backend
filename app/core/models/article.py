@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import uuid
 
-from sqlalchemy import ForeignKey, String, Text, Uuid
+from sqlalchemy import Boolean, ForeignKey, String, Text, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -23,16 +23,32 @@ class Article(Base):
         ForeignKey("chat_sessions.id", ondelete="CASCADE"),
         nullable=True,
     )
+    parent_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("articles.id", ondelete="CASCADE"),
+        nullable=True,
+    )
+    is_folder: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
     title: Mapped[str] = mapped_column(String(500), nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
 
-    author: Mapped[User] = relationship(back_populates="articles")
+    author: Mapped["User"] = relationship(back_populates="articles")
     chat_session: Mapped["ChatSession | None"] = relationship(
         back_populates="articles",
         foreign_keys=[chat_session_id],
     )
+    parent: Mapped["Article | None"] = relationship(
+        remote_side=[id],
+        back_populates="children",
+        foreign_keys=[parent_id],
+    )
+    children: Mapped[list["Article"]] = relationship(
+        back_populates="parent",
+        foreign_keys=[parent_id],
+    )
     tags: Mapped[list[Tag]] = relationship(secondary=article_tags, back_populates="articles")
-    questions: Mapped[list[ArticleQuestion]] = relationship(
+    questions: Mapped[list["ArticleQuestion"]] = relationship(
+        "ArticleQuestion",
         back_populates="article",
         cascade="all, delete-orphan",
     )

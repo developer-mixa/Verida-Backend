@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.responses import Response
 
@@ -11,11 +11,12 @@ from app.core.database import get_db
 from app.core.deps import get_current_user_id
 from app.core.models.article_study_session import ArticleStudySession
 from app.features.articles.deps import get_article_repository, get_article_study_repository
-from app.features.articles.repositories.article_repository import ArticleRepository
+from app.features.articles.repositories.article_repository import ArticleRepository, OMITTED
 from app.features.articles.repositories.article_study_repository import ArticleStudyRepository
 from app.features.articles.schemas import (
     ArticleCreateIn,
     ArticleDetailOut,
+    ArticleImportZipOut,
     ArticleQuestionCreateIn,
     ArticleQuestionOut,
     ArticleQuestionUpdateIn,
@@ -25,6 +26,7 @@ from app.features.articles.schemas import (
     ArticleSummaryOut,
     ArticleUpdateIn,
 )
+from app.features.articles.zip_import import ZipImportError, import_articles_from_zip
 
 router = APIRouter(prefix="/articles", tags=["articles"])
 
@@ -53,9 +55,44 @@ async def list_my_articles(
     repo: Annotated[ArticleRepository, Depends(get_article_repository)],
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
+    parent_id: UUID | None = Query(default=None, description="Только дочерние указанного родителя"),
+    roots_only: bool = Query(default=False, description="Только корневые (parent_id IS NULL)"),
 ) -> list[ArticleSummaryOut]:
-    rows = await repo.list_for_user(user_id=user_id, limit=limit, offset=offset)
+    if roots_only and parent_id is not None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Нельзя одновременно указывать parent_id и roots_only",
+        )
+    rows = await repo.list_for_user(
+        user_id=user_id,
+        limit=limit,
+        offset=offset,
+        parent_id=parent_id,
+        parent_id_filter_set=parent_id is not None,
+        roots_only=roots_only,
+    )
     return [ArticleSummaryOut.model_validate(a) for a in rows]
+
+
+@router.post(
+    "/import-zip",
+    response_model=ArticleImportZipOut,
+    status_code=status.HTTP_201_CREATED,
+    summary="Импорт конспектов из ZIP",
+    description="Распаковывает архив: папки → узлы is_folder, .md → заметки. Пути в БД не хранятся. Требуется JWT.",
+)
+async def import_articles_zip(
+    user_id: Annotated[UUID, Depends(get_current_user_id)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    file: UploadFile = File(..., description="ZIP-архив с Markdown-файлами"),
+) -> ArticleImportZipOut:
+    raw = await file.read()
+    try:
+        n, roots = await import_articles_from_zip(db, user_id=user_id, zip_bytes=raw)
+    except ZipImportError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=e.message) from e
+    await db.commit()
+    return ArticleImportZipOut(created_count=n, root_article_ids=roots)
 
 
 @router.get(
@@ -279,12 +316,19 @@ async def create_article(
             content=payload.content,
             tag_pairs=pairs,
             chat_session_id=payload.chat_session_id,
+            parent_id=payload.parent_id,
+            is_folder=payload.is_folder,
         )
     except ValueError as e:
         if str(e) == "chat_session_not_found":
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Тема чата не найдена или не принадлежит вам",
+            ) from e
+        if str(e) == "parent_not_found":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Родительская статья не найдена",
             ) from e
         raise
     await db.commit()
@@ -309,13 +353,45 @@ async def update_article(
     pairs: list[tuple[str, str]] | None = None
     if payload.tags is not None:
         pairs = [(t.article_type, t.article_name) for t in payload.tags]
-    row = await repo.update_owned(
-        article_id=article_id,
-        user_id=user_id,
-        title=payload.title.strip() if payload.title is not None else None,
-        content=payload.content if payload.content is not None else None,
-        tag_pairs=pairs,
-    )
+    parent_kw: UUID | object = OMITTED
+    if "parent_id" in payload.model_fields_set:
+        parent_kw = payload.parent_id
+    is_folder_kw: bool | object = OMITTED
+    if "is_folder" in payload.model_fields_set:
+        if payload.is_folder is None:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="is_folder должен быть true или false",
+            )
+        is_folder_kw = payload.is_folder
+    try:
+        row = await repo.update_owned(
+            article_id=article_id,
+            user_id=user_id,
+            title=payload.title.strip() if payload.title is not None else None,
+            content=payload.content if payload.content is not None else None,
+            tag_pairs=pairs,
+            parent_id=parent_kw,
+            is_folder=is_folder_kw,
+        )
+    except ValueError as e:
+        code = str(e)
+        if code == "parent_not_found":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Родительская статья не найдена",
+            ) from e
+        if code == "parent_self":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Статья не может быть родителем самой себя",
+            ) from e
+        if code == "parent_cycle":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Такой родитель создаёт цикл в дереве",
+            ) from e
+        raise
     if row is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Статья не найдена")
     await db.commit()
